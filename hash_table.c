@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 
@@ -40,6 +41,7 @@ void ht_del_hash_table (ht_hash_table* ht){
         if (i != NULL)
             ht_del_item(i);
     }
+    fflush(stdout);
     free(ht->items);
     free(ht);
 }
@@ -51,7 +53,6 @@ static int ht_hash (const char* s, const int a, const int size){
         hash += (long)pow(a, strlen(s) - (i + 1)) * s[i];
         hash %= size;
     }
-
     return (int)hash;
 }
 
@@ -66,7 +67,8 @@ static int ht_get_hash (const char* s, const int nr_buckets, const int attempt){
 
 void ht_insert(ht_hash_table* ht, const char* key, const char* value){
     const int load = ht->count * 100 / ht->size;
-    //if the load i too high, resize it up
+
+    // if the load i too high, resize it up
     if (load > 70)
         ht_resize_up(ht);
 
@@ -125,9 +127,12 @@ void ht_delete(ht_hash_table* ht, const char* key){
                     ht_del_item(item);
                     //the item we wish to delete may be part of a collision chain, so we only mark it with HT_DELETED_ITEM
                     ht->items[index] = &HT_DELETED_ITEM;
+                    break;
                 }
+
             index = ht_get_hash(key, ht->size, i);
             item = ht->items[index];
+
             ++i;
         }
         --ht->count;
@@ -159,30 +164,33 @@ static void ht_resize(ht_hash_table* ht, const int base_size){
         if (item != NULL && item != &HT_DELETED_ITEM)
             ht_insert(new_ht, item->key, item->value);
     }
-
-    //copy base_size, count, size from new_ht to ht
+    
+    //copy base_size, count from new_ht to ht
     ht->base_size = new_ht->base_size;
     ht->count = new_ht->count;
-    ht->size = new_ht->size;
 
     //swap new_ht with ht to delete new_ht later without memory leaks 
-    ht_item** aux2 = ht->items;
+    ht_item** tmp_items = ht->items;
     ht->items = new_ht->items;
-    new_ht->items = aux2;
+    new_ht->items = tmp_items;
+
+    //swap sizes so we can delete within the correct size
+    const int tmp_size = ht->size;
+    ht->size = new_ht->size;
+    new_ht->size = tmp_size;
+
 
     ht_del_hash_table(new_ht);
 
 }
 
 static void ht_resize_up(ht_hash_table* ht){
-    const int new_size = ht->base_size * 2;
+    const int new_size = ht->base_size + 30;
+    
     ht_resize(ht, new_size);
 }
 
 static void ht_resize_down(ht_hash_table* ht){
-    const int new_size = ht->base_size / 2;
+    const int new_size = ht->base_size - 30;
     ht_resize(ht, new_size);
 }
-
-
-
