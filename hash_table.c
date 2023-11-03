@@ -127,6 +127,7 @@ void ht_delete(ht_hash_table* ht, const char* key){
                     ht->items[index] = &HT_DELETED_ITEM;
                 }
             index = ht_get_hash(key, ht->size, i);
+            item = ht->items[index];
             ++i;
         }
         --ht->count;
